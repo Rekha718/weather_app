@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="card">
+        <div class="search">
+            <input type="text" id="locationInput" placeholder="enter city name or zip code" spellcheck="false">
+            <button id="searchButton"><img src="images/search.png"></button>
+        </div>
+        <div class="error">
+            <p>Invalid City Name or Zip Code</p>
+        </div>
+        <div class="weather">
+            <img src="" class="weather-icon">
+            <h1 class="temp">22°c</h1>
+            <h2 class="city">Bengaluru</h2>
+            <div class="details">
+                <div class="col">
+                    <img src="images/humidity.png">
+                    <div>
+                        <p class="humidity">50%</p>
+                        <p>Humidity</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <img src="images/wind.png">
+                    <div>
+                        <p class="wind">15 km/h</p>
+                        <p>Wind Speed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="forecast">
+        </div>
+    </div>
+
+    <script>
+        const apiKey = "2f203482dbcf46d1f67556e600bf98a9";
+        const apiUrl = "https://api.openweathermap.org/data/2.5/";
+        const searchBox = document.getElementById("locationInput");
+        const searchBtn = document.getElementById("searchButton");
+        const weatherIcon = document.querySelector(".weather-icon");
+
+        async function checkWeather(location) {
+            const response = await fetch(`${apiUrl}weather?units=metric&q=${location}&appid=${apiKey}`);
+            if (response.status == 404) {
+                document.querySelector(".error").style.display = "block";
+                document.querySelector(".weather").style.display = "none";
+                document.querySelector(".forecast").style.display = "none";
+            } else {
+                const data = await response.json();
+                document.querySelector(".city").innerHTML = data.name;
+                document.querySelector(".temp").innerHTML = Math.round(data.main.temp) + "°c";
+                document.querySelector(".humidity").innerHTML = data.main.humidity + "%";
+                document.querySelector(".wind").innerHTML = data.wind.speed + " km/h";
+
+                // Update weather icon based on weather condition
+                const weatherIconCode = data.weather[0].icon;
+                weatherIcon.src = `http://openweathermap.org/img/wn/${weatherIconCode}.png`;
+
+                document.querySelector(".weather").style.display = "block";
+                document.querySelector(".error").style.display = "none";
+                
+                // Fetch and display 5-day forecast
+                const forecastResponse = await fetch(`${apiUrl}forecast?units=metric&q=${location}&appid=${apiKey}`);
+                if (forecastResponse.ok) {
+                    const forecastData = await forecastResponse.json();
+                    displayForecast(forecastData);
+                } else {
+                    console.error('Failed to fetch forecast data');
+                }
+            }
+        }
+
+        function displayForecast(data) {
+            const forecastDiv = document.querySelector('.forecast');
+            forecastDiv.innerHTML = ''; // Clear previous forecast data
+
+            for (let i = 0; i < data.list.length; i += 8) {
+                const forecast = data.list[i];
+                const forecastDate = new Date(forecast.dt * 1000);
+                const forecastDay = forecastDate.toLocaleDateString('en-US', { weekday: 'short' });
+                const forecastTemp = Math.round(forecast.main.temp);
+                const forecastIcon = forecast.weather[0].icon;
+
+                const forecastItem = document.createElement('div');
+                forecastItem.classList.add('forecast-item');
+                forecastItem.innerHTML = `
+                    <div class="forecast-day">${forecastDay}</div>
+                    <img src="http://openweathermap.org/img/wn/${forecastIcon}.png" alt="weather icon">
+                    <div class="forecast-temp">${forecastTemp}°c</div>
+                `;
+                forecastDiv.appendChild(forecastItem);
+            }
+
+            forecastDiv.style.display = 'flex';
+        }
+
+        searchBtn.addEventListener("click", () => {
+            checkWeather(searchBox.value);
+        });
+    </script>
+</body>
+</html>
